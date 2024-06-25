@@ -26,7 +26,7 @@ from airflow.models.connection import Connection
 
 from airflow_dbt_python.utils.version import DBT_INSTALLED_LESS_THAN_1_5
 
-from contextlib import chdir as chdir_ctx
+from contextlib_chdir import chdir as chdir_ctx
 
 
 if TYPE_CHECKING:
