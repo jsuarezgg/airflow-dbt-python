@@ -259,8 +259,6 @@ class DbtHook(BaseHook):
             )
             requires_profile = isinstance(task, (CleanTask, DepsTask))
 
-            self.setup_dbt_logging(task, config.debug)
-
             if runtime_config is not None and not requires_profile:
                 # The deps command installs the dependencies, which means they may
                 # not exist before deps runs and the following would raise a
