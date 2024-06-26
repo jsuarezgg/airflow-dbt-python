@@ -240,69 +240,42 @@ class DbtHook(BaseHook):
         config = self.get_dbt_task_config(command, **kwargs)
         extra_target = self.get_dbt_target_from_connection(config.target)
 
-        with self.dbt_directory(
-            config,
-            upload_dbt_project=upload_dbt_project,
-            delete_before_upload=delete_before_upload,
-            replace_on_upload=replace_on_upload,
-            env_vars=env_vars,
-        ) as dbt_dir:
-            # When creating tasks via from_args, dbt switches to the project directory.
-            # We have to do that here as we are not using from_args.
-            if DBT_INSTALLED_LESS_THAN_1_5:
-                # For compatibility with older versions of dbt, as the signature
-                # of move_to_nearest_project_dir changed in dbt-core 1.5 to take
-                # just the project_dir.
-                nearest_project_dir = get_nearest_project_dir(config)  # type: ignore
-            else:
-                nearest_project_dir = get_nearest_project_dir(config.project_dir)
+        # When creating tasks via from_args, dbt switches to the project directory.
+        # We have to do that here as we are not using from_args.
+        if DBT_INSTALLED_LESS_THAN_1_5:
+            # For compatibility with older versions of dbt, as the signature
+            # of move_to_nearest_project_dir changed in dbt-core 1.5 to take
+            # just the project_dir.
+            nearest_project_dir = get_nearest_project_dir(config)  # type: ignore
+        else:
+            nearest_project_dir = get_nearest_project_dir(config.project_dir)
 
-            with chdir_ctx(nearest_project_dir):
-                config.dbt_task.pre_init_hook(config)
-                self.ensure_profiles(config)
+        with chdir_ctx(nearest_project_dir):
+            config.dbt_task.pre_init_hook(config)
+            self.ensure_profiles(config)
 
-                task, runtime_config = config.create_dbt_task(
-                    extra_target, write_perf_info
-                )
-                requires_profile = isinstance(task, (CleanTask, DepsTask))
+            task, runtime_config = config.create_dbt_task(
+                extra_target, write_perf_info
+            )
+            requires_profile = isinstance(task, (CleanTask, DepsTask))
 
-                self.setup_dbt_logging(task, config.debug)
+            self.setup_dbt_logging(task, config.debug)
 
-                if runtime_config is not None and not requires_profile:
-                    # The deps command installs the dependencies, which means they may
-                    # not exist before deps runs and the following would raise a
-                    # CompilationError.
-                    runtime_config.load_dependencies()
+            if runtime_config is not None and not requires_profile:
+                # The deps command installs the dependencies, which means they may
+                # not exist before deps runs and the following would raise a
+                # CompilationError.
+                runtime_config.load_dependencies()
 
-                results = None
-                with adapter_management():
-                    if not requires_profile:
-                        if runtime_config is not None:
-                            register_adapter(runtime_config)
+            results = None
+            with adapter_management():
+                if not requires_profile:
+                    if runtime_config is not None:
+                        register_adapter(runtime_config)
 
-                    with track_run(task):
-                        results = task.run()
-                    success = task.interpret_results(results)
-
-                if artifacts is None:
-                    return DbtTaskResult(success, results, {})
-
-                saved_artifacts = {}
-                for artifact in artifacts:
-                    artifact_path = Path(dbt_dir) / "target" / artifact
-
-                    if not artifact_path.exists():
-                        self.log.warning(
-                            "Required dbt artifact %s was not found. "
-                            "Perhaps dbt failed and couldn't generate it.",
-                            artifact,
-                        )
-                        continue
-
-                    with open(artifact_path) as artifact_file:
-                        json_artifact = json.load(artifact_file)
-
-                    saved_artifacts[artifact] = json_artifact
+                with track_run(task):
+                    results = task.run()
+                success = task.interpret_results(results)
 
         return DbtTaskResult(success, results, saved_artifacts)
 
