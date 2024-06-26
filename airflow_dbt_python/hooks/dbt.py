@@ -259,6 +259,8 @@ class DbtHook(BaseHook):
             )
             requires_profile = isinstance(task, (CleanTask, DepsTask))
 
+            self.setup_dbt_logging(task, config.debug)
+
             if runtime_config is not None and not requires_profile:
                 # The deps command installs the dependencies, which means they may
                 # not exist before deps runs and the following would raise a
@@ -401,8 +403,6 @@ class DbtHook(BaseHook):
             flags = get_flags()
             setup_event_logger(flags)
 
-        configured_file = logging.getLogger("configured_file")
-        file_log = logging.getLogger("file_log")
         stdout_log = logging.getLogger("stdout_log")
         stdout_log.propagate = True
 
