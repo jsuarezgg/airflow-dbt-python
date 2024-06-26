@@ -277,7 +277,7 @@ class DbtHook(BaseHook):
                     results = task.run()
                 success = task.interpret_results(results)
 
-        return DbtTaskResult(success, results, saved_artifacts)
+        return DbtTaskResult(success, results, {})
 
     def get_dbt_task_config(self, command: str, **config_kwargs) -> BaseConfig:
         """Initialize a configuration for given dbt command with given kwargs."""
