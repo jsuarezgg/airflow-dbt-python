@@ -403,8 +403,17 @@ class DbtHook(BaseHook):
             flags = get_flags()
             setup_event_logger(flags)
 
+        file_log = logging.getLogger("file_log")
         stdout_log = logging.getLogger("stdout_log")
+        configured_file = logging.getLogger("configured_file")
+        
+        # Disable propagation for file loggers to prevent duplicate logging
+        file_log.propagate = False
+        configured_file.propagate = False
+
+        # Allow stdout_log to propagate, but remove its handlers
         stdout_log.propagate = True
+        stdout_log.handlers = []
 
         if not debug:
             # We have to do this after setting logs up as dbt hasn't
